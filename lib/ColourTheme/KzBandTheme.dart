@@ -1,20 +1,7 @@
 import 'package:flutter/material.dart';
 
-const Color bgColor = Color(0xFF060E13);
-
-ThemeData kzBandTheme = ThemeData(
-  brightness: Brightness.dark,
-  scaffoldBackgroundColor: bgColor,
-  useMaterial3: true,
-  textTheme: const TextTheme(
-    titleLarge: TextStyle(
-      fontSize: 28,
-      fontWeight: FontWeight.bold,
-      letterSpacing: 2,
-    ),
-    bodyMedium: TextStyle(
-      fontSize: 16,
-      color: Colors.white,
-    ),
-  ),
-);
+class KzBandTheme {
+  static const Color background = Color(0xFF060E13);
+  static const Color panel = Color(0xFF0D1B24);
+  static const Color accent = Color(0xFF4FA8FF);
+}

@@ -2,33 +2,32 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:kzband/LiveState/SessionState.dart';
 
 const String SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
 const String CHAR_TX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 
 class LiveDashboard extends StatefulWidget {
   final BluetoothDevice device;
-  const LiveDashboard({super.key, required this.device});
+  final SessionState session;
+
+  const LiveDashboard({
+    super.key,
+    required this.device,
+    required this.session,
+  });
 
   @override
   State<LiveDashboard> createState() => _LiveDashboardState();
 }
 
 class _LiveDashboardState extends State<LiveDashboard> {
-  // Physiological
-  String bpm = "--";
-  String gsr = "--";
-  String temp = "--";
+  String bpm = "--", gsr = "--", temp = "--";
+  String accMag = "--", gyroMag = "--";
 
-  // Kinematics
-  String accZ = "--";
-  String accMag = "--";
-  String gyroMag = "--";
-  String angX = "--";
-  String angY = "--";
-  String angZ = "--";
-
+  final List<String> displayPackets = []; // UI‑only (max 10)
   final StringBuffer buffer = StringBuffer();
+
   StreamSubscription<List<int>>? sub;
   BluetoothCharacteristic? char;
 
@@ -56,33 +55,44 @@ class _LiveDashboardState extends State<LiveDashboard> {
 
   void _onData(List<int> data) {
     buffer.write(utf8.decode(data));
+
     while (buffer.toString().contains('\n')) {
       final idx = buffer.toString().indexOf('\n');
       final line = buffer.toString().substring(0, idx).trim();
       buffer.clear();
-      if (line.isNotEmpty) _parse(line);
+
+      if (line.isNotEmpty) {
+        _parse(line);
+
+        // ✅ UI display: last 10 only
+        setState(() {
+          displayPackets.add(line);
+          if (displayPackets.length > 10) {
+            displayPackets.removeAt(0);
+          }
+        });
+
+        // ✅ FULL storage if recording
+        if (widget.session.isRunning) {
+          widget.session.addPacket(line);
+        }
+      }
     }
   }
 
   void _parse(String raw) {
     final kvs = raw.split(',');
-    if (!mounted) return;
 
     setState(() {
       for (final p in kvs) {
         final kv = p.split(':');
         if (kv.length != 2) continue;
-
         switch (kv[0]) {
           case 'BPM': bpm = kv[1]; break;
           case 'GSR': gsr = kv[1]; break;
           case 'Tmp': temp = kv[1]; break;
-          case 'AccZ': accZ = kv[1]; break;
           case 'AccMag': accMag = kv[1]; break;
           case 'GyroMag': gyroMag = kv[1]; break;
-          case 'AngX': angX = kv[1]; break;
-          case 'AngY': angY = kv[1]; break;
-          case 'AngZ': angZ = kv[1]; break;
         }
       }
     });
@@ -97,122 +107,50 @@ class _LiveDashboardState extends State<LiveDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final bool recording = widget.session.isRunning;
+
     return Scaffold(
       backgroundColor: const Color(0xFF060E13),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          widget.device.platformName,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2,
-          ),
-        ),
-      ),
-      body: Padding(
+      body: ListView(
         padding: const EdgeInsets.all(16),
-        child: ListView(
-          children: [
-
-            // ───── PHYSIOLOGICAL ─────
-            Row(
-              children: [
-                Expanded(
-                  child: _dataCard("CARDIAC OUTPUT", bpm, "BPM"),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _dataCard("EDA / GSR", gsr, "RAW"),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            Row(
-              children: [
-                Expanded(
-                  child: _dataCard("SURFACE TEMP", temp, "°C"),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _dataCard("ACC MAG", accMag, "g"),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // ───── IMU ─────
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0D1B24),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "IMU KINEMATICS",
-                    style: TextStyle(
-                      color: Colors.white54,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text("AccZ: $accZ g"),
-                      Text("Gyro: $gyroMag °/s"),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _miniStat("PITCH", angX),
-                      _miniStat("ROLL", angY),
-                      _miniStat("YAW", angZ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _dataCard(String title, String value, String unit) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0D1B24),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+
+          // ───── MODE INDICATOR ─────
           Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white54,
-              fontSize: 11,
-              letterSpacing: 1,
+            recording
+                ? "RECORDING SESSION"
+                : "RESTING CHECK – VERIFY SIGNALS",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: recording ? Colors.greenAccent : Colors.orangeAccent,
+              fontWeight: FontWeight.bold,
             ),
           ),
+
           const SizedBox(height: 12),
-          Text(
-            "$value $unit",
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
+
+          _card("BPM", bpm),
+          _card("GSR", gsr),
+          _card("TEMP", temp),
+          _card("ACC MAG", accMag),
+          _card("GYRO MAG", gyroMag),
+
+          const SizedBox(height: 16),
+
+          // ───── LAST 10 PACKETS (DISPLAY ONLY) ─────
+          const Text(
+            "LAST RECEIVED PACKETS (DISPLAY LIMIT 10)",
+            style: TextStyle(color: Colors.white54),
+          ),
+          const SizedBox(height: 6),
+
+          ...displayPackets.map(
+                (p) => Text(
+              p,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.white70,
+              ),
             ),
           ),
         ],
@@ -220,22 +158,24 @@ class _LiveDashboardState extends State<LiveDashboard> {
     );
   }
 
-  Widget _miniStat(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.blueAccent,
-            fontWeight: FontWeight.bold,
+  Widget _card(String label, String value) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D1B24),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white54)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 18),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

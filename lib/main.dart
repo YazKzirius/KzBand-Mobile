@@ -16,7 +16,7 @@ class KzBandApp extends StatefulWidget {
 }
 
 class _KzBandAppState extends State<KzBandApp> {
-  int _index = 0;
+  int index = 0;
 
   final pages = const [
     DevicesTab(),
@@ -27,29 +27,22 @@ class _KzBandAppState extends State<KzBandApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: kzBandTheme,
       debugShowCheckedModeBanner: false,
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: KzBandTheme.background,
+      ),
       home: Scaffold(
-        body: pages[_index],
+        body: pages[index],
         bottomNavigationBar: BottomNavigationBar(
-          currentIndex: _index,
-          onTap: (i) => setState(() => _index = i),
-          backgroundColor: const Color(0xFF060E13),
-          selectedItemColor: Colors.blueAccent,
+          currentIndex: index,
+          onTap: (i) => setState(() => index = i),
+          backgroundColor: KzBandTheme.background,
+          selectedItemColor: KzBandTheme.accent,
           unselectedItemColor: Colors.white38,
           items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.devices),
-              label: 'Devices',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.bluetooth_connected),
-              label: 'Live',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.analytics_outlined),
-              label: 'Analytics',
-            ),
+            BottomNavigationBarItem(icon: Icon(Icons.devices), label: 'Devices'),
+            BottomNavigationBarItem(icon: Icon(Icons.bluetooth_connected), label: 'Live'),
+            BottomNavigationBarItem(icon: Icon(Icons.analytics_outlined), label: 'Analytics'),
           ],
         ),
       ),

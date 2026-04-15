@@ -15,14 +15,19 @@ class _DeviceScannerModalState extends State<DeviceScannerModal> {
   @override
   void initState() {
     super.initState();
+
     FlutterBluePlus.startScan(timeout: const Duration(seconds: 6));
+
     FlutterBluePlus.scanResults.listen((r) {
+      if (!mounted) return;
+
       setState(() {
         results = r.where((e) {
           final name = e.device.platformName.isNotEmpty
               ? e.device.platformName
               : e.device.advName;
-          return name.contains("KzBand");
+
+          return name.startsWith("KzBand") || name.startsWith("KzHand");
         }).toList();
       });
     });
