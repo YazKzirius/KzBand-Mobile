@@ -1,55 +1,68 @@
 import 'package:kzband/LiveState/SessionState.dart';
 
-String sessionToCsv(SessionRecord session) {
-  final header = [
+Map<String, String> sessionToCsvByDevice(SessionRecord session) {
+  // ───── Headers ─────
+  final kzHandHeader = [
     'timestamp_ms',
-    'sequence',
-    'device',
+    'eda_finger_raw',
+    'eda_finger_clean',
+    'eda_finger_phasic',
+  ].join(',');
+
+  final kzBandHeader = [
+    'timestamp_ms',
     'bpm',
-    'gsr_raw',
-    'gsr_clean',
-    'gsr_phasic',
+    'eda_forehead_raw',
+    'eda_forehead_clean',
+    'eda_forehead_phasic',
     'temperature_c',
     'acc_mag',
     'gyro_mag',
     'motion_state',
   ].join(',');
 
-  final rows = session.packets.map((packet) {
-    final fields = {
-      'TS': '',
-      'SEQ': '',
-      'BPM': '',
-      'GSR_RAW': '',
-      'GSR_CLEAN': '',
-      'GSR_PHASIC': '',
-      'Tmp': '',
-      'AccMag': '',
-      'GyroMag': '',
-      'Motion': '',
-    };
+  final kzHandRows = <String>[];
+  final kzBandRows = <String>[];
+
+  // ───── Process every packet ─────
+  for (final packet in session.packets) {
+    final fields = <String, String>{};
 
     for (final part in packet.split(',')) {
       final kv = part.split(':');
-      if (kv.length == 2 && fields.containsKey(kv[0])) {
+      if (kv.length == 2) {
         fields[kv[0]] = kv[1];
       }
     }
 
-    return [
-      fields['TS'],
-      fields['SEQ'],
-      session.userId,
-      fields['BPM'],
-      fields['GSR_RAW'],
-      fields['GSR_CLEAN'],
-      fields['GSR_PHASIC'],
-      fields['Tmp'],
-      fields['AccMag'],
-      fields['GyroMag'],
-      fields['Motion'],
-    ].join(',');
-  }).toList();
+    // ───── KzHand packet ─────
+    if (fields.containsKey('EDA_FINGER_RAW')) {
+      kzHandRows.add([
+        fields['TS'] ?? '',
+        fields['EDA_FINGER_RAW'] ?? '',
+        fields['EDA_FINGER_CLEAN'] ?? '',
+        fields['EDA_FINGER_PHASIC'] ?? '',
+      ].join(','));
+    }
 
-  return ([header, ...rows]).join('\n');
+    // ───── KzBand packet ─────
+    if (fields.containsKey('EDA_FOREHEAD_RAW')) {
+      kzBandRows.add([
+        fields['TS'] ?? '',
+        fields['BPM'] ?? '',
+        fields['EDA_FOREHEAD_RAW'] ?? '',
+        fields['EDA_FOREHEAD_CLEAN'] ?? '',
+        fields['EDA_FOREHEAD_PHASIC'] ?? '',
+        fields['Tmp'] ?? '',
+        fields['AccMag'] ?? '',
+        fields['GyroMag'] ?? '',
+        fields['Motion'] ?? '',
+      ].join(','));
+    }
+  }
+
+  return {
+    'KzHand': ([kzHandHeader, ...kzHandRows]).join('\n'),
+    'KzBand': ([kzBandHeader, ...kzBandRows]).join('\n'),
+  };
 }

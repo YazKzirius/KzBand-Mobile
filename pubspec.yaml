@@ -37,6 +37,7 @@ dependencies:
   flutter_blue_plus: ^2.2.1
   permission_handler: ^11.3.0
   share_plus: ^7.2.1
+  path_provider: ^2.0.9
 
 dev_dependencies:
   flutter_test:

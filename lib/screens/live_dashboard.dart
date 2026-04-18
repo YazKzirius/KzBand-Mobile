@@ -1,130 +1,70 @@
-import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'package:kzband/LiveState/SessionState.dart';
-
-const String SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
-const String CHAR_TX_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+import 'package:kzband/BluetoothScanner/BleRecorder.dart';
 
 class LiveDashboard extends StatefulWidget {
   final BluetoothDevice device;
-  final SessionState session;
 
-  const LiveDashboard({
-    super.key,
-    required this.device,
-    required this.session,
-  });
+  const LiveDashboard({super.key, required this.device});
 
   @override
   State<LiveDashboard> createState() => _LiveDashboardState();
 }
 
 class _LiveDashboardState extends State<LiveDashboard> {
-  // ───── KzBand signals ─────
+  StreamSubscription<String>? _sub;
+
+  // Display values
   String bpm = "--";
   String temp = "--";
   String accMag = "--";
   String gyroMag = "--";
-
-  // ───── GSR signals (both devices) ─────
-  String gsrRaw = "--";
-  String gsrClean = "--";
-  String gsrPhasic = "--";
-
-  final List<String> displayPackets = [];
-  final StringBuffer buffer = StringBuffer();
-
-  StreamSubscription<List<int>>? sub;
-  BluetoothCharacteristic? char;
+  String edaRaw = "--";
+  String edaClean = "--";
+  String edaPhasic = "--";
 
   @override
   void initState() {
     super.initState();
-    _initBle();
-  }
 
-  Future<void> _initBle() async {
-    final services = await widget.device.discoverServices();
-    for (final s in services) {
-      if (s.uuid.toString() == SERVICE_UUID) {
-        for (final c in s.characteristics) {
-          if (c.uuid.toString() == CHAR_TX_UUID) {
-            char = c;
-            await c.setNotifyValue(true);
-            sub = c.lastValueStream.listen(_onData);
-            return;
-          }
-        }
-      }
-    }
-  }
+    final bool isKzHand =
+    widget.device.platformName.startsWith("KzHand");
 
-  void _onData(List<int> data) {
-    buffer.write(utf8.decode(data));
-
-    while (buffer.toString().contains('\n')) {
-      final idx = buffer.toString().indexOf('\n');
-      final line = buffer.toString().substring(0, idx).trim();
-      buffer.clear();
-
-      if (line.isEmpty) return;
-
-      // ✅ recording stays EXACTLY as before
-      if (widget.session.isRunning) {
-        widget.session.addPacket(line);
+    _sub = BleRecorder.instance.packetStream.listen((packet) {
+      final map = <String, String>{};
+      for (final part in packet.split(',')) {
+        final kv = part.split(':');
+        if (kv.length == 2) map[kv[0]] = kv[1];
       }
 
-      _parse(line);
-
-      setState(() {
-        displayPackets.add(line);
-        if (displayPackets.length > 10) {
-          displayPackets.removeAt(0);
-        }
-      });
-    }
-  }
-
-  void _parse(String raw) {
-    for (final p in raw.split(',')) {
-      final kv = p.split(':');
-      if (kv.length != 2) continue;
-
-      switch (kv[0]) {
-      // ───── KzBand only ─────
-        case 'BPM':
-          bpm = kv[1];
-          break;
-        case 'Tmp':
-          temp = kv[1];
-          break;
-        case 'AccMag':
-          accMag = kv[1];
-          break;
-        case 'GyroMag':
-          gyroMag = kv[1];
-          break;
-
-      // ───── Shared / KzHand ─────
-        case 'GSR_RAW':
-          gsrRaw = kv[1];
-          break;
-        case 'GSR_CLEAN':
-          gsrClean = kv[1];
-          break;
-        case 'GSR_PHASIC':
-          gsrPhasic = kv[1];
-          break;
+      if (isKzHand && map.containsKey('EDA_FINGER_RAW')) {
+        setState(() {
+          edaRaw = map['EDA_FINGER_RAW'] ?? edaRaw;
+          edaClean = map['EDA_FINGER_CLEAN'] ?? edaClean;
+          edaPhasic = map['EDA_FINGER_PHASIC'] ?? edaPhasic;
+        });
       }
-    }
+
+      if (!isKzHand && map.containsKey('EDA_FOREHEAD_RAW')) {
+        setState(() {
+          bpm = map['BPM'] ?? bpm;
+          temp = map['Tmp'] ?? temp;
+          accMag = map['AccMag'] ?? accMag;
+          gyroMag = map['GyroMag'] ?? gyroMag;
+          edaRaw = map['EDA_FOREHEAD_RAW'] ?? edaRaw;
+          edaClean =
+              map['EDA_FOREHEAD_CLEAN'] ?? edaClean;
+          edaPhasic =
+              map['EDA_FOREHEAD_PHASIC'] ?? edaPhasic;
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
-    sub?.cancel();
-    char?.setNotifyValue(false);
+    _sub?.cancel();
     super.dispose();
   }
 
@@ -139,14 +79,12 @@ class _LiveDashboardState extends State<LiveDashboard> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white54)),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text(label,
+              style: const TextStyle(color: Colors.white54)),
+          Text(value,
+              style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -154,64 +92,41 @@ class _LiveDashboardState extends State<LiveDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final bool recording = widget.session.isRunning;
     final bool isKzHand =
     widget.device.platformName.startsWith("KzHand");
 
     return Scaffold(
       backgroundColor: const Color(0xFF060E13),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(widget.device.platformName),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // ───── MODE INDICATOR (unchanged) ─────
-          Text(
-            recording
-                ? "RECORDING SESSION"
-                : "RESTING CHECK – VERIFY SIGNALS",
+          const Text(
+            "RESTING CHECK – LIVE SIGNAL",
             textAlign: TextAlign.center,
             style: TextStyle(
-              color:
-              recording ? Colors.greenAccent : Colors.orangeAccent,
-              fontWeight: FontWeight.bold,
-            ),
+                color: Colors.orangeAccent,
+                fontWeight: FontWeight.bold),
           ),
-
           const SizedBox(height: 12),
 
-          // ───── KzHand: GSR ONLY ─────
           if (isKzHand) ...[
-            _card("GSR RAW", gsrRaw),
-            _card("GSR CLEAN", gsrClean),
-            _card("GSR PHASIC", gsrPhasic),
-          ]
-
-          // ───── KzBand: FULL SENSOR SET ─────
-          else ...[
+            _card("EDA RAW", edaRaw),
+            _card("EDA CLEAN", edaClean),
+            _card("EDA PHASIC", edaPhasic),
+          ] else ...[
             _card("BPM", bpm),
-            _card("GSR RAW", gsrRaw),
-            _card("GSR CLEAN", gsrClean),
-            _card("GSR PHASIC", gsrPhasic),
+            _card("EDA RAW", edaRaw),
+            _card("EDA CLEAN", edaClean),
+            _card("EDA PHASIC", edaPhasic),
             _card("TEMP (°C)", temp),
             _card("ACC MAG", accMag),
             _card("GYRO MAG", gyroMag),
           ],
-
-          const SizedBox(height: 16),
-
-          const Text(
-            "LAST RECEIVED PACKETS (DISPLAY LIMIT 10)",
-            style: TextStyle(color: Colors.white54),
-          ),
-
-          ...displayPackets.map(
-                (p) => Text(
-              p,
-              style: const TextStyle(
-                fontSize: 11,
-                color: Colors.white70,
-              ),
-            ),
-          ),
         ],
       ),
     );
