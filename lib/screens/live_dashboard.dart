@@ -22,10 +22,18 @@ class LiveDashboard extends StatefulWidget {
 }
 
 class _LiveDashboardState extends State<LiveDashboard> {
-  String bpm = "--", gsr = "--", temp = "--";
-  String accMag = "--", gyroMag = "--";
+  // ───── KzBand signals ─────
+  String bpm = "--";
+  String temp = "--";
+  String accMag = "--";
+  String gyroMag = "--";
 
-  final List<String> displayPackets = []; // UI‑only (max 10)
+  // ───── GSR signals (both devices) ─────
+  String gsrRaw = "--";
+  String gsrClean = "--";
+  String gsrPhasic = "--";
+
+  final List<String> displayPackets = [];
   final StringBuffer buffer = StringBuffer();
 
   StreamSubscription<List<int>>? sub;
@@ -61,41 +69,56 @@ class _LiveDashboardState extends State<LiveDashboard> {
       final line = buffer.toString().substring(0, idx).trim();
       buffer.clear();
 
-      if (line.isNotEmpty) {
-        _parse(line);
+      if (line.isEmpty) return;
 
-        // ✅ UI display: last 10 only
-        setState(() {
-          displayPackets.add(line);
-          if (displayPackets.length > 10) {
-            displayPackets.removeAt(0);
-          }
-        });
-
-        // ✅ FULL storage if recording
-        if (widget.session.isRunning) {
-          widget.session.addPacket(line);
-        }
+      // ✅ recording stays EXACTLY as before
+      if (widget.session.isRunning) {
+        widget.session.addPacket(line);
       }
+
+      _parse(line);
+
+      setState(() {
+        displayPackets.add(line);
+        if (displayPackets.length > 10) {
+          displayPackets.removeAt(0);
+        }
+      });
     }
   }
 
   void _parse(String raw) {
-    final kvs = raw.split(',');
+    for (final p in raw.split(',')) {
+      final kv = p.split(':');
+      if (kv.length != 2) continue;
 
-    setState(() {
-      for (final p in kvs) {
-        final kv = p.split(':');
-        if (kv.length != 2) continue;
-        switch (kv[0]) {
-          case 'BPM': bpm = kv[1]; break;
-          case 'GSR': gsr = kv[1]; break;
-          case 'Tmp': temp = kv[1]; break;
-          case 'AccMag': accMag = kv[1]; break;
-          case 'GyroMag': gyroMag = kv[1]; break;
-        }
+      switch (kv[0]) {
+      // ───── KzBand only ─────
+        case 'BPM':
+          bpm = kv[1];
+          break;
+        case 'Tmp':
+          temp = kv[1];
+          break;
+        case 'AccMag':
+          accMag = kv[1];
+          break;
+        case 'GyroMag':
+          gyroMag = kv[1];
+          break;
+
+      // ───── Shared / KzHand ─────
+        case 'GSR_RAW':
+          gsrRaw = kv[1];
+          break;
+        case 'GSR_CLEAN':
+          gsrClean = kv[1];
+          break;
+        case 'GSR_PHASIC':
+          gsrPhasic = kv[1];
+          break;
       }
-    });
+    }
   }
 
   @override
@@ -103,59 +126,6 @@ class _LiveDashboardState extends State<LiveDashboard> {
     sub?.cancel();
     char?.setNotifyValue(false);
     super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bool recording = widget.session.isRunning;
-
-    return Scaffold(
-      backgroundColor: const Color(0xFF060E13),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-
-          // ───── MODE INDICATOR ─────
-          Text(
-            recording
-                ? "RECORDING SESSION"
-                : "RESTING CHECK – VERIFY SIGNALS",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: recording ? Colors.greenAccent : Colors.orangeAccent,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          _card("BPM", bpm),
-          _card("GSR", gsr),
-          _card("TEMP", temp),
-          _card("ACC MAG", accMag),
-          _card("GYRO MAG", gyroMag),
-
-          const SizedBox(height: 16),
-
-          // ───── LAST 10 PACKETS (DISPLAY ONLY) ─────
-          const Text(
-            "LAST RECEIVED PACKETS (DISPLAY LIMIT 10)",
-            style: TextStyle(color: Colors.white54),
-          ),
-          const SizedBox(height: 6),
-
-          ...displayPackets.map(
-                (p) => Text(
-              p,
-              style: const TextStyle(
-                fontSize: 11,
-                color: Colors.white70,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _card(String label, String value) {
@@ -172,7 +142,75 @@ class _LiveDashboardState extends State<LiveDashboard> {
           Text(label, style: const TextStyle(color: Colors.white54)),
           Text(
             value,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool recording = widget.session.isRunning;
+    final bool isKzHand =
+    widget.device.platformName.startsWith("KzHand");
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF060E13),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // ───── MODE INDICATOR (unchanged) ─────
+          Text(
+            recording
+                ? "RECORDING SESSION"
+                : "RESTING CHECK – VERIFY SIGNALS",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color:
+              recording ? Colors.greenAccent : Colors.orangeAccent,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // ───── KzHand: GSR ONLY ─────
+          if (isKzHand) ...[
+            _card("GSR RAW", gsrRaw),
+            _card("GSR CLEAN", gsrClean),
+            _card("GSR PHASIC", gsrPhasic),
+          ]
+
+          // ───── KzBand: FULL SENSOR SET ─────
+          else ...[
+            _card("BPM", bpm),
+            _card("GSR RAW", gsrRaw),
+            _card("GSR CLEAN", gsrClean),
+            _card("GSR PHASIC", gsrPhasic),
+            _card("TEMP (°C)", temp),
+            _card("ACC MAG", accMag),
+            _card("GYRO MAG", gyroMag),
+          ],
+
+          const SizedBox(height: 16),
+
+          const Text(
+            "LAST RECEIVED PACKETS (DISPLAY LIMIT 10)",
+            style: TextStyle(color: Colors.white54),
+          ),
+
+          ...displayPackets.map(
+                (p) => Text(
+              p,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.white70,
+              ),
+            ),
           ),
         ],
       ),

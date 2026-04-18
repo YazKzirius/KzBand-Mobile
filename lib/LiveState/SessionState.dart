@@ -38,7 +38,6 @@ class SessionState {
     return "U$r";
   }
 
-  /// Called when researcher presses START
   void startSession() {
     isRunning = true;
     _activeSession = SessionRecord(
@@ -48,7 +47,6 @@ class SessionState {
     );
   }
 
-  /// Called when researcher presses STOP
   void stopSession() {
     if (_activeSession == null) return;
     _activeSession!.endTime = DateTime.now();
@@ -57,7 +55,6 @@ class SessionState {
     isRunning = false;
   }
 
-  /// Store **ALL packets** (unlimited)
   void addPacket(String packet) {
     if (isRunning && _activeSession != null) {
       _activeSession!.packets.add(packet);

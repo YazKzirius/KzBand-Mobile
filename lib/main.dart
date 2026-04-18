@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:kzband/NavigationTabs/Devices.dart';
-import 'package:kzband/NavigationTabs/Connected.dart';
-import 'package:kzband/NavigationTabs/Analytics.dart';
-import 'package:kzband/ColourTheme/KzBandTheme.dart';
+import 'NavigationTabs/Devices.dart';
+import 'NavigationTabs/Connected.dart';
+import 'NavigationTabs/Analytics.dart';
+import 'ColourTheme/KzBandTheme.dart';
 
 void main() {
   runApp(const KzBandApp());
@@ -16,7 +16,7 @@ class KzBandApp extends StatefulWidget {
 }
 
 class _KzBandAppState extends State<KzBandApp> {
-  int index = 0;
+  int _index = 0;
 
   final pages = const [
     DevicesTab(),
@@ -28,16 +28,14 @@ class _KzBandAppState extends State<KzBandApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: KzBandTheme.background,
-      ),
+      theme: kzBandTheme,
       home: Scaffold(
-        body: pages[index],
+        body: pages[_index],
         bottomNavigationBar: BottomNavigationBar(
-          currentIndex: index,
-          onTap: (i) => setState(() => index = i),
-          backgroundColor: KzBandTheme.background,
-          selectedItemColor: KzBandTheme.accent,
+          currentIndex: _index,
+          onTap: (i) => setState(() => _index = i),
+          backgroundColor: const Color(0xFF060E13),
+          selectedItemColor: Colors.blueAccent,
           unselectedItemColor: Colors.white38,
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.devices), label: 'Devices'),
