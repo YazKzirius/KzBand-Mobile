@@ -1,6 +1,6 @@
 # kzband
 
-Kzband is a wearable multi-sensor sports bandanna developed to assess the relationship between physiological stress and kinematic performance. This flutter app is created to visualise data analytics of the connected device via Bluetooth for clearer understanding. with github link: https://github.com/YazKzirius/KzBand-Mobile. With data analysis code having link: https://github.com/YazKzirius/KzBand-Analysis-Code/tree/main.
+Kzband is a wearable multi-sensor sports bandanna developed to assess the relationship between physiological stress and kinematic performance. This flutter app is created to visualise data analytics of the connected device via Bluetooth for clearer understanding. with github link: https://github.com/YazKzirius/KzBand-Mobile. With data analysis code having link: https://github.com/YazKzirius/KzBand-Analysis-Code/tree/main. To run code, for analysis, make sure the data/ folder inside the analyis/ folder, that is has a specific participant/ or pilot/ folder where all csvs are split into phases: Basline, Stretching, Predictable, Unpredictable and Recovery. This will ensure that code runs on datasets.
 
 ## Getting Started
 zx
