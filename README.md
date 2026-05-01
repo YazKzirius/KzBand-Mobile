@@ -1,6 +1,6 @@
 # kzband
 
-Kzband is a wearable multi-sensor sports bandanna developed to assess the relationship between physiological stress and kinematic performance. This flutter app is created to visualise data analytics of the connected device via Bluetooth for clearer understanding.
+Kzband is a wearable multi-sensor sports bandanna developed to assess the relationship between physiological stress and kinematic performance. This flutter app is created to visualise data analytics of the connected device via Bluetooth for clearer understanding. with github link: https://github.com/YazKzirius/KzBand-Mobile
 
 ## Getting Started
 zx
