@@ -1,5 +1,6 @@
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
+//This class is used to store the connected devices for the app and analysis
 class ConnectedDevices {
   ConnectedDevices._();
   static final ConnectedDevices instance = ConnectedDevices._();

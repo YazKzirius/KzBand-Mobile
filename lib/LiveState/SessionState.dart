@@ -1,5 +1,6 @@
 import 'dart:math';
 
+//This class is used to record live data streaming sessions for analysis
 class SessionRecord {
   final String userId;
   final DateTime startTime;

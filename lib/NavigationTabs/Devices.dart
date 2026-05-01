@@ -1,6 +1,8 @@
+//imports
 import 'package:flutter/material.dart';
 import 'package:kzband/BluetoothScanner/DeviceScanner.dart';
 
+//This gives users the ability to add specific devices and connect them via bluetooth
 class DevicesTab extends StatelessWidget {
   const DevicesTab({super.key});
 

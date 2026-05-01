@@ -1,3 +1,4 @@
+//Imports
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -8,6 +9,7 @@ const String serviceUuid =
 const String characteristicUuid =
     "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 
+//Bluetooth recording process
 class BleRecorder {
   BleRecorder._();
   static final BleRecorder instance = BleRecorder._();
@@ -17,7 +19,7 @@ class BleRecorder {
   final Map<String, StreamSubscription<List<int>>> _subs = {};
   final Map<String, StringBuffer> _buffers = {};
 
-  // ✅ Live packet stream for UI (resting check)
+  //Live packet stream for UI
   final StreamController<String> _packetStreamController =
   StreamController<String>.broadcast();
 
@@ -56,10 +58,9 @@ class BleRecorder {
 
       if (line.isEmpty) continue;
 
-      // ✅ 1. Always broadcast live packet (for resting checks)
+      // Constant signal broadcast
       _packetStreamController.add(line);
 
-      // ✅ 2. Record if session is running
       if (_session.isRunning) {
         _session.addPacket(line);
       }

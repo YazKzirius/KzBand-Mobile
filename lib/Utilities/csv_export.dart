@@ -1,7 +1,7 @@
 import 'package:kzband/LiveState/SessionState.dart';
 
 Map<String, String> sessionToCsvByDevice(SessionRecord session) {
-  // ───── Headers ─────
+  //Kzhand CSV metrics
   final kzHandHeader = [
     'timestamp_ms',
     'eda_finger_raw',
@@ -9,6 +9,7 @@ Map<String, String> sessionToCsvByDevice(SessionRecord session) {
     'eda_finger_phasic',
   ].join(',');
 
+  //Kzband CSV metrics
   final kzBandHeader = [
     'timestamp_ms',
     'bpm',
@@ -24,7 +25,7 @@ Map<String, String> sessionToCsvByDevice(SessionRecord session) {
   final kzHandRows = <String>[];
   final kzBandRows = <String>[];
 
-  // ───── Process every packet ─────
+  //Processing data signals
   for (final packet in session.packets) {
     final fields = <String, String>{};
 
@@ -35,7 +36,7 @@ Map<String, String> sessionToCsvByDevice(SessionRecord session) {
       }
     }
 
-    // ───── KzHand packet ─────
+    //KzHand packet
     if (fields.containsKey('EDA_FINGER_RAW')) {
       kzHandRows.add([
         fields['TS'] ?? '',
@@ -45,7 +46,7 @@ Map<String, String> sessionToCsvByDevice(SessionRecord session) {
       ].join(','));
     }
 
-    // ───── KzBand packet ─────
+    //KzBand packet
     if (fields.containsKey('EDA_FOREHEAD_RAW')) {
       kzBandRows.add([
         fields['TS'] ?? '',

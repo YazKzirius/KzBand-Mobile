@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+//Application colour theme
 class KzBandTheme {
   static const Color background = Color(0xFF060E13);
   static const Color panel = Color(0xFF0D1B24);

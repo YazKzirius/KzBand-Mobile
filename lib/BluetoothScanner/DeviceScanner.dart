@@ -1,7 +1,9 @@
+//Imports
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:kzband/LiveState/ConnectedDevices.dart';
 
+//Scans for device via bluetooth and allows multi device connection
 class DeviceScannerModal extends StatefulWidget {
   const DeviceScannerModal({super.key});
 

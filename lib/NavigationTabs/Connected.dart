@@ -1,9 +1,11 @@
+//Imports
 import 'package:flutter/material.dart';
 import 'package:kzband/LiveState/ConnectedDevices.dart';
 import 'package:kzband/LiveState/SessionState.dart';
 import 'package:kzband/BluetoothScanner/BleRecorder.dart';
 import 'package:kzband/screens/live_dashboard.dart';
 
+//This loads up all the connected devices and provides access to current signals
 class ConnectedTab extends StatefulWidget {
   const ConnectedTab({super.key});
 
@@ -18,7 +20,7 @@ class _ConnectedTabState extends State<ConnectedTab> {
   Widget build(BuildContext context) {
     final devices = ConnectedDevices.instance.devices;
 
-    // ✅ Attach ALL devices to recorder
+    //Attach ALL devices to recorder
     for (final d in devices) {
       BleRecorder.instance.attachDevice(d);
     }

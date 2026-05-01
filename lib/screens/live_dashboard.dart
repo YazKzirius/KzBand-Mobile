@@ -1,8 +1,10 @@
+//Imports
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:kzband/BluetoothScanner/BleRecorder.dart';
 
+//This page displays the live data from the connected device
 class LiveDashboard extends StatefulWidget {
   final BluetoothDevice device;
 

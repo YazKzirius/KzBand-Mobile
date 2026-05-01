@@ -1,3 +1,4 @@
+//Imports
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:kzband/LiveState/SessionState.dart';
@@ -5,10 +6,9 @@ import 'package:kzband/Utilities/csv_export.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+//Analytics tab display
 class AnalyticsTab extends StatelessWidget {
   const AnalyticsTab({super.key});
-
-  // ✅ Compute columns + rows for each CSV
   Map<String, Map<String, int>> _csvStats(Map<String, String> csvs) {
     final stats = <String, Map<String, int>>{};
 
@@ -37,7 +37,7 @@ class AnalyticsTab extends StatelessWidget {
 
     final files = <XFile>[];
 
-    // ✅ KzHand CSV
+    //KzHand CSV
     if ((stats['KzHand']?['rows'] ?? 0) > 0) {
       final file = File(
         '${dir.path}/session_${session.userId}_KzHand_$ts.csv',
@@ -46,7 +46,7 @@ class AnalyticsTab extends StatelessWidget {
       files.add(XFile(file.path));
     }
 
-    // ✅ KzBand CSV
+    //KzBand CSV
     if ((stats['KzBand']?['rows'] ?? 0) > 0) {
       final file = File(
         '${dir.path}/session_${session.userId}_KzBand_$ts.csv',
